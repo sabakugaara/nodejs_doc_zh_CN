@@ -6,21 +6,36 @@ Most tests in Node.js core are JavaScript programs that exercise a functionality
 provided by Node.js and check that it behaves as expected. Tests should exit
 with code `0` on success. A test will fail if:
 
+> node.js 中的大部分测试代码都是使用 Javascript 编写：若测试代码正常退出，则认为测试通过。以下两种情况被视作测试失败：
+
 - It exits by setting `process.exitCode` to a non-zero number.
   - This is usually done by having an assertion throw an uncaught Error.
   - Occasionally, using `process.exit(code)` may be appropriate.
 - It never exits. In this case, the test runner will terminate the test because
   it sets a maximum time limit.
 
+> - 进程退出时，`process.exitCode` 的值非 0
+>   - 一般情况是代码抛出异常，退出码会被自动修改为非 0 值
+>   - 也可能会直接通过 `process.exit(code)` 修改退出码
+> - 进程永不退出，测试进程会被强制退出，因为每个测试都有超时设置
+
 Add tests when:
+
+> 哪些情况需要添加测试用例？
 
 - Adding new functionality.
 - Fixing regressions and bugs.
 - Expanding test coverage.
 
+> - 添加新功能时
+> - 修复 bug 时
+> - 提升测试覆盖率
+
 ## Test structure
 
 Let's analyze this basic test from the Node.js test suite:
+
+> 下面是一个基本的 node.js 项目测试代码：
 
 ```javascript
 'use strict';                                                          // 1
@@ -56,8 +71,13 @@ const common = require('../common');
 The first line enables strict mode. All tests should be in strict mode unless
 the nature of the test requires that the test run without it.
 
+> 第一行代码开启严格模式，所有的测试代码都必须在严格模式下运行，
+> 除非被测试的特性本身需要在非严格模式下运行。
+
 The second line loads the `common` module. The [`common` module][] is a helper
 module that provides useful tools for the tests.
+
+> 第二行加载 `commom` 模块，`test/common` 模块提供了很多有用的辅助函数，用来帮助编写测试
 
 Even if a test uses no functions or other properties exported by `common`,
 the test should still include the `common` module before any other modules. This
@@ -65,6 +85,10 @@ is because the `common` module includes code that will cause a test to fail if
 the test leaks variables into the global space. In situations where a test uses
 no functions or other properties exported by `common`, include it without
 assigning it to an identifier:
+
+> 即使一个测试用例没有使用到任何 `common` 模块中的内容，仍然需要在加载其他模块前加载该模块。
+> 这是因为 `common` 模块中包含了检测代码：如果一个测试用例定义了一个全局变量，检测代码会使该测试执行失败。
+> 当测试用例没有使用任何 `common` 模块中的内容时，直接 `require`，不赋值给任何变量即可：
 
 ```javascript
 require('../common');
@@ -80,6 +104,8 @@ require('../common');
 A test should start with a comment containing a brief description of what it is
 designed to test.
 
+> 测试代码的开头应当包含一段简短备注，用来说明该测试的测试目标。
+
 ### **Lines 7-8**
 
 ```javascript
@@ -88,18 +114,25 @@ const http = require('http');
 ```
 
 The test checks functionality in the `http` module.
+> 示例代码是测试 `http` 模块的功能，所以第八行需要加载该模块
 
 Most tests use the `assert` module to confirm expectations of the test.
+
+> 第 7 行加载了 `assert` 断言库，大部分测试用例使用该库来检查测试结果
 
 The require statements are sorted in
 [ASCII][] order (digits, upper
 case, `_`, lower case).
+
+> require 语句应当按照 `ASCII` 码表排序：数字、大写字母、下划线、小写
 
 ### **Lines 10-21**
 
 This is the body of the test. This test is simple, it just tests that an
 HTTP server accepts `non-ASCII` characters in the headers of an incoming
 request. Interesting things to notice:
+
+> 10-21 行部分是测试用例的主要部分。代码很简单，只需要测试一个 http 服务器可以接收请求头中包含的非 `ASCII` 码表中的字符。这段代码中有以下几点需要注意：
 
 - If the test doesn't depend on a specific port number, then always use 0
   instead of an arbitrary value, as it allows tests to run in parallel safely,
@@ -112,6 +145,12 @@ request. Interesting things to notice:
   exit gracefully. Remember that for a test to succeed, it must exit with a
   status code of 0.
 
+> - 如果测试不依赖于特定的端口号，那么每次监听是应该使用随机端口号(`listen(0)`)。这样并行运行测试更加安全，不会端口冲突。除非测试代码就是为了测试需要监听一个指定的端口号的情况，那么可以在测试中可以指定监听的端口号
+> - 使用了 `common.mustCall` 确保一些回调函数一定被调用
+> - 一旦所有的测试断言运行通过，HTTP 服务器必须关闭退出。这样才能让测试进程优雅的自动退出，退出状态码也会被自动设置为 0，必须记住这一点。否则非 0 的退出码，会导致测试失败
+
+
+
 ## General recommendations
 
 ### Timers
@@ -119,6 +158,8 @@ request. Interesting things to notice:
 Avoid timers unless the test is specifically testing timers. There are multiple
 reasons for this. Mainly, they are a source of flakiness. For a thorough
 explanation go [here](https://github.com/nodejs/testing/issues/27).
+
+> 尽量避免使用定时器，除非要测试定时器。之所以这么建议，有很多原因。更多的讨论见：[nodejs/testing#27](https://github.com/nodejs/testing/issues/27)
 
 In the event a test needs a timer, consider using the
 `common.platformTimeout()` method. It allows setting specific timeouts
