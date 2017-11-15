@@ -1,41 +1,48 @@
-# How to write a test for the Node.js project
+# 如何为 Node.js 项目编写测试
 
-## What is a test?
+> # How to write a test for the Node.js project
 
-Most tests in Node.js core are JavaScript programs that exercise a functionality
+## 什么是测试？
+
+> ## What is a test?
+
+node.js 中的大部分测试都是使用 Javascript 代码编写：若测试代码正常退出，则认为测试通过。以下两种情况则被视作测试失败：
+
+> Most tests in Node.js core are JavaScript programs that exercise a functionality
 provided by Node.js and check that it behaves as expected. Tests should exit
 with code `0` on success. A test will fail if:
 
-> node.js 中的大部分测试代码都是使用 Javascript 编写：若测试代码正常退出，则认为测试通过。以下两种情况被视作测试失败：
+- 进程退出时，`process.exitCode` 的值非 0
+  - 一般情况是代码抛出异常，退出码会被自动修改为非 0 值
+  - 也可能会直接通过 `process.exit(code)` 修改退出码
+- 进程永不退出，测试进程会被强制退出，因为每个测试都有超时设置
 
-- It exits by setting `process.exitCode` to a non-zero number.
-  - This is usually done by having an assertion throw an uncaught Error.
-  - Occasionally, using `process.exit(code)` may be appropriate.
-- It never exits. In this case, the test runner will terminate the test because
-  it sets a maximum time limit.
 
-> - 进程退出时，`process.exitCode` 的值非 0
->   - 一般情况是代码抛出异常，退出码会被自动修改为非 0 值
->   - 也可能会直接通过 `process.exit(code)` 修改退出码
-> - 进程永不退出，测试进程会被强制退出，因为每个测试都有超时设置
+> - It exits by setting `process.exitCode` to a non-zero number.
+>   - This is usually done by having an assertion throw an uncaught Error.
+>   - Occasionally, using `process.exit(code)` may be appropriate.
+> - It never exits. In this case, the test runner will terminate the test because
+>   it sets a maximum time limit.
 
-Add tests when:
+哪些情况需要添加测试用例？
 
-> 哪些情况需要添加测试用例？
+> Add tests when:
 
-- Adding new functionality.
-- Fixing regressions and bugs.
-- Expanding test coverage.
+- 添加新功能时
+- 修复 bug 时
+- 提升测试覆盖率
 
-> - 添加新功能时
-> - 修复 bug 时
-> - 提升测试覆盖率
+> - Adding new functionality.
+> - Fixing regressions and bugs.
+> - Expanding test coverage.
 
-## Test structure
 
-Let's analyze this basic test from the Node.js test suite:
+## 测试代码的结构
+> ## Test structure
 
-> 下面是一个基本的 node.js 项目测试代码：
+下面是一个基本的 node.js 项目测试代码：
+
+> Let's analyze this basic test from the Node.js test suite:
 
 ```javascript
 'use strict';                                                          // 1
@@ -67,28 +74,27 @@ server.listen(0, () => {                                               // 13
 'use strict';
 const common = require('../common');
 ```
+第一行代码开启严格模式，所有的测试代码都必须在严格模式下运行，
+除非被测试的特性本身需要在非严格模式下运行。
 
-The first line enables strict mode. All tests should be in strict mode unless
+> The first line enables strict mode. All tests should be in strict mode unless
 the nature of the test requires that the test run without it.
 
-> 第一行代码开启严格模式，所有的测试代码都必须在严格模式下运行，
-> 除非被测试的特性本身需要在非严格模式下运行。
+第二行加载 `commom` 模块，`test/common` 模块提供了很多有用的辅助函数，用来帮助编写测试
 
-The second line loads the `common` module. The [`common` module][] is a helper
+> The second line loads the `common` module. The [`common` module][] is a helper
 module that provides useful tools for the tests.
 
-> 第二行加载 `commom` 模块，`test/common` 模块提供了很多有用的辅助函数，用来帮助编写测试
+即使一个测试用例没有使用到任何 `common` 模块中的内容，仍然需要在加载其他模块前加载该模块。
+这是因为 `common` 模块中包含了检测代码：如果一个测试用例定义了一个全局变量，检测代码会使该测试执行失败。
+当测试用例没有使用任何 `common` 模块中的内容时，直接 `require`，不赋值给任何变量即可：
 
-Even if a test uses no functions or other properties exported by `common`,
+> Even if a test uses no functions or other properties exported by `common`,
 the test should still include the `common` module before any other modules. This
 is because the `common` module includes code that will cause a test to fail if
 the test leaks variables into the global space. In situations where a test uses
 no functions or other properties exported by `common`, include it without
 assigning it to an identifier:
-
-> 即使一个测试用例没有使用到任何 `common` 模块中的内容，仍然需要在加载其他模块前加载该模块。
-> 这是因为 `common` 模块中包含了检测代码：如果一个测试用例定义了一个全局变量，检测代码会使该测试执行失败。
-> 当测试用例没有使用任何 `common` 模块中的内容时，直接 `require`，不赋值给任何变量即可：
 
 ```javascript
 require('../common');
@@ -101,10 +107,10 @@ require('../common');
 // in the http header.
 ```
 
-A test should start with a comment containing a brief description of what it is
-designed to test.
+如上所示，测试代码的开头应当包含一段简短备注，用来说明该测试的测试目标。
 
-> 测试代码的开头应当包含一段简短备注，用来说明该测试的测试目标。
+> A test should start with a comment containing a brief description of what it is
+designed to test.
 
 ### **Lines 7-8**
 
@@ -113,70 +119,87 @@ const assert = require('assert');
 const http = require('http');
 ```
 
-The test checks functionality in the `http` module.
-> 示例代码是测试 `http` 模块的功能，所以第八行需要加载该模块
+示例代码是测试 `http` 模块的功能，所以第八行需要加载该模块
 
-Most tests use the `assert` module to confirm expectations of the test.
+> The test checks functionality in the `http` module.
 
-> 第 7 行加载了 `assert` 断言库，大部分测试用例使用该库来检查测试结果
+第 7 行加载了 `assert` 断言库，大部分测试用例使用该库来检查测试结果
 
-The require statements are sorted in
+> Most tests use the `assert` module to confirm expectations of the test.
+
+require 语句应当按照 `ASCII` 码表排序：数字、大写字母、下划线、小写
+
+> The require statements are sorted in
 [ASCII][] order (digits, upper
 case, `_`, lower case).
 
-> require 语句应当按照 `ASCII` 码表排序：数字、大写字母、下划线、小写
 
 ### **Lines 10-21**
 
-This is the body of the test. This test is simple, it just tests that an
+10-21 行部分是测试用例的主要部分。代码很简单，只需要测试一个 http 服务器可以接收请求头中包含的非 `ASCII` 码表中的字符。这段代码中有以下几点需要注意：
+
+> This is the body of the test. This test is simple, it just tests that an
 HTTP server accepts `non-ASCII` characters in the headers of an incoming
 request. Interesting things to notice:
 
-> 10-21 行部分是测试用例的主要部分。代码很简单，只需要测试一个 http 服务器可以接收请求头中包含的非 `ASCII` 码表中的字符。这段代码中有以下几点需要注意：
+- 如果测试不依赖于特定的端口号，那么每次监听是应该使用随机端口号(`listen(0)`)。这样并行运行测试更加安全，不会端口冲突。除非测试代码就是为了测试需要监听一个指定的端口号的情况，那么可以在测试中可以指定监听的端口号
+- 使用了 `common.mustCall` 确保一些回调函数一定被调用
+- 一旦所有的测试断言运行通过，HTTP 服务器必须关闭退出。这样才能让测试进程优雅的自动退出，退出状态码也会被自动设置为 0，必须记住这一点。否则非 0 的退出码，会导致测试失败
 
-- If the test doesn't depend on a specific port number, then always use 0
+> - If the test doesn't depend on a specific port number, then always use 0
   instead of an arbitrary value, as it allows tests to run in parallel safely,
   as the operating system will assign a random port. If the test requires a
   specific port, for example if the test checks that assigning a specific port
   works as expected, then it is ok to assign a specific port number.
-- The use of `common.mustCall` to check that some callbacks/listeners are
+> - The use of `common.mustCall` to check that some callbacks/listeners are
   called.
-- The HTTP server closes once all the checks have run. This way, the test can
+> - The HTTP server closes once all the checks have run. This way, the test can
   exit gracefully. Remember that for a test to succeed, it must exit with a
   status code of 0.
 
-> - 如果测试不依赖于特定的端口号，那么每次监听是应该使用随机端口号(`listen(0)`)。这样并行运行测试更加安全，不会端口冲突。除非测试代码就是为了测试需要监听一个指定的端口号的情况，那么可以在测试中可以指定监听的端口号
-> - 使用了 `common.mustCall` 确保一些回调函数一定被调用
-> - 一旦所有的测试断言运行通过，HTTP 服务器必须关闭退出。这样才能让测试进程优雅的自动退出，退出状态码也会被自动设置为 0，必须记住这一点。否则非 0 的退出码，会导致测试失败
+
+## 一些建议
+
+> ## General recommendations
 
 
+### 定时器
 
-## General recommendations
+> ### Timers
 
-### Timers
+尽量避免使用定时器，除非要测试定时器。之所以这么建议，有很多原因。更多的讨论见：[nodejs/testing#27](https://github.com/nodejs/testing/issues/27)
 
-Avoid timers unless the test is specifically testing timers. There are multiple
+> Avoid timers unless the test is specifically testing timers. There are multiple
 reasons for this. Mainly, they are a source of flakiness. For a thorough
 explanation go [here](https://github.com/nodejs/testing/issues/27).
 
-> 尽量避免使用定时器，除非要测试定时器。之所以这么建议，有很多原因。更多的讨论见：[nodejs/testing#27](https://github.com/nodejs/testing/issues/27)
+如果需要一个测试需要定时器，考虑使用 `common.platformTimeout()` 方法生成超时时间。该方法会依据不同的平台帮你生成一个合适的超时时间。例如：
 
-In the event a test needs a timer, consider using the
+> In the event a test needs a timer, consider using the
 `common.platformTimeout()` method. It allows setting specific timeouts
 depending on the platform. For example:
+
 
 ```javascript
 const timer = setTimeout(fail, common.platformTimeout(4000));
 ```
 
-will create a 4-second timeout on most platforms but a longer timeout on slower
+上面的代码在大多数平台会返回 4000ms，但是在一些缓慢的平台上返回一个大于 4000ms 的时间。
+
+> will create a 4-second timeout on most platforms but a longer timeout on slower
 platforms.
 
-### The *common* API
+### *common* 模块有哪些 API
+> ### The *common* API
 
-Make use of the helpers from the `common` module as much as possible.
+尽可能的使用 `common` 模块中的辅助方法。
 
-One interesting case is `common.mustCall`. The use of `common.mustCall` may
+> Make use of the helpers from the `common` module as much as possible.
+
+最常见的是使用 `common.mustCall` 方法，避免创建额外的变量来判断一个方法是否被调用。
+例如下面这段代码：
+
+> One interesting case is `common.mustCall`. The use of `common.mustCall` may
 avoid the use of extra variables and the corresponding assertions. Let's explain
 this with a real test from the test suite.
 
@@ -209,7 +232,9 @@ const server = http.createServer(function(req, res) {
 });
 ```
 
-This test could be greatly simplified by using `common.mustCall` like this:
+这个测试如果使用 `common.mustCall` 改写，将会更加简介，如下所示：
+
+> This test could be greatly simplified by using `common.mustCall` like this:
 
 ```javascript
 'use strict';
@@ -231,9 +256,13 @@ const server = http.createServer(common.mustCall(function(req, res) {
 
 ```
 
-### Flags
+### 标识
 
-Some tests will require running Node.js with specific command line flags set. To
+> ### Flags
+
+一些测试可能需要以特定的命令行参数启动 Node.js 才能执行，可以通过在测试代码开头添加一个特定的注释: `// Flags: ` 来实现这样的效果。比如测试代码要加载一些内部模块，比如 `internal/freelist` 模块，需要以 `--expose-internals` 参数启动 Node.js，测试代码可以像这样写：
+
+> Some tests will require running Node.js with specific command line flags set. To
 accomplish this, add a `// Flags: ` comment in the preamble of the
 test followed by the flags. For example, to allow a test to require some of the
 `internal/*` modules, add the `--expose-internals` flag.
@@ -249,14 +278,20 @@ const assert = require('assert');
 const freelist = require('internal/freelist');
 ```
 
-### Assertions
+### 断言
+> ### Assertions
 
-When writing assertions, prefer the strict versions:
+当编写断言时，优先使用严格比较：
+> When writing assertions, prefer the strict versions:
 
-* `assert.strictEqual()` over `assert.equal()`
-* `assert.deepStrictEqual()` over `assert.deepEqual()`
+* `assert.strictEqual()` 代替 `assert.equal()`
+* `assert.deepStrictEqual()` 代替 `assert.deepEqual()`
 
-When using `assert.throws()`, if possible, provide the full error message:
+> * `assert.strictEqual()` over `assert.equal()`
+> * `assert.deepStrictEqual()` over `assert.deepEqual()`
+
+当使用 `assert.throws()` 方法时，尽可能提供一个完整的错误描述
+> When using `assert.throws()`, if possible, provide the full error message:
 
 ```js
 assert.throws(
@@ -266,38 +301,57 @@ assert.throws(
   /^Error: Wrong value$/ // Instead of something like /Wrong value/
 );
 ```
+### ES.Next 新标准
+> ### ES.Next features
 
-### ES.Next features
+出于性能考虑，Node.js 项目 `lib` 目录下的 Javascript 源代码只使用了部分 Javascript 语言新特性。
+但是当编写测试代码时，为了方便移植，我们鼓励使用任何[主干分支][]直接支持的新语言特性。所有版本直接支持的特性列表可以从这里: [node.green][] 查看(PS: 列表中 `Yes` 标记的特性)
 
-For performance considerations, we only use a selected subset of ES.Next
+> For performance considerations, we only use a selected subset of ES.Next
 features in JavaScript code in the `lib` directory. However, when writing
 tests, for the ease of backporting, it is encouraged to use those ES.Next
 features that can be used directly without a flag in
 [all maintained branches][]. [node.green][] lists available features
 in each release.
 
-For example:
+例如：
+> For example:
 
-* `let` and `const` over `var`
-* Template literals over string concatenation
-* Arrow functions when appropriate
+* 使用 `let` 和 `const` 代替 `var`
+* 模板字符串代替字符拼接
+* 合理使用箭头函数
 
-## Naming Test Files
+> * `let` and `const` over `var`
+> * Template literals over string concatenation
+> * Arrow functions when appropriate
 
-Test files are named using kebab casing. The first component of the name is
+## 测试文件命名
+
+> ## Naming Test Files
+
+测试文件名使用 `kebab` 命名方式。文件名以`test` 开头，第二个部分是被测试的模块或子系统，
+第三个部分是被测试方法或事件名。剩余的部分用来描述测试用例更多的信息。
+
+> Test files are named using kebab casing. The first component of the name is
 `test`. The second is the module or subsystem being tested. The third is usually
 the method or event name being tested. Subsequent components of the name add
 more information about what is being tested.
 
-For example, a test for the `beforeExit` event on the `process` object might be
+例如，一个测试 `process` 对象上 `beforeExit` 事件的文件，可能会被命名为 `test-process-before-exit.js`。如果这个测试 `beforeExit` 事件回调函数能否使用箭头函数，文件名可能被修改为
+`test-process-before-exit-arrow-functions.js`。
+
+> For example, a test for the `beforeExit` event on the `process` object might be
 named `test-process-before-exit.js`. If the test specifically checked that arrow
 functions worked correctly with the `beforeExit` event, then it might be named
 `test-process-before-exit-arrow-functions.js`.
 
-## Imported Tests
+## 第三方测试
+> ## Imported Tests
 
-### Web Platform Tests
+### Web 平台测试
+> ### Web Platform Tests
 
+一些测试用例是从 [Web Platform Tests Project][] 引入，用以测试 Web 标准 URL 规范(`test-whatwg-url-*.js` 相关文件)
 Some of the tests for the WHATWG URL implementation (named
 `test-whatwg-url-*.js`) are imported from the [Web Platform Tests Project][].
 These imported tests will be wrapped like this:
