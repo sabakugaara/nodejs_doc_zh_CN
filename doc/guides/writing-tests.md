@@ -351,8 +351,8 @@ functions worked correctly with the `beforeExit` event, then it might be named
 ### Web 平台测试
 > ### Web Platform Tests
 
-一些测试用例是从 [Web Platform Tests Project][] 引入，用以测试 Web 标准 URL 规范(`test-whatwg-url-*.js` 相关文件)
-Some of the tests for the WHATWG URL implementation (named
+一些测试用例是从 [Web Platform Tests Project][] 引入，用以测试 Web URL 标准(`test-whatwg-url-*.js` 相关文件)，这些从第三方引入的测试文件，会使用如下注释包裹的布局：
+> Some of the tests for the WHATWG URL implementation (named
 `test-whatwg-url-*.js`) are imported from the [Web Platform Tests Project][].
 These imported tests will be wrapped like this:
 
@@ -369,19 +369,32 @@ These imported tests will be wrapped like this:
 /* eslint-enable */
 ```
 
-To improve tests that have been imported this way, please send
+如果要改进这些第三方引入的测试，请先向上游项目提交 PR。当上游项目合并了这些修改后，再另外向 Node.js 提交 PR 更新测试。注意：别忘记更新注释中 `Refs` url 里的 hash 值。
+
+> To improve tests that have been imported this way, please send
 a PR to the upstream project first. When the proposed change is merged in
 the upstream project, send another PR here to update Node.js accordingly.
 Be sure to update the hash in the URL following `WPT Refs:`.
 
-## C++ Unit test
-C++ code can be tested using [Google Test][]. Most features in Node.js can be
+## C++ 单元测试
+
+> ## C++ Unit test
+
+C++ 代码可以使用 [Google Test][] 测试。大多数的 Node.js 功能特性都可以使用以上文档描述的
+方法测试。但是仍有很少数情况，需要使用其他方法处理。例如一些代码仅会在 Node.js 被嵌入执行时被调用。
+
+> C++ code can be tested using [Google Test][]. Most features in Node.js can be
 tested using the methods described previously in this document. But there are
 cases where these might not be enough, for example writing code for Node.js
 that will only be called when Node.js is embedded.
 
-### Adding a new test
-The unit test should be placed in `test/cctest` and be named with the prefix
+### 添加新测试
+> ### Adding a new test
+
+C++ 单元测试代码应当被放置在 `test/cctest` 目录下，以 `test` 作为文件名前缀，加测试的模块命名。
+例如如下代码，应当命名为： `test/cctest/test_env.cc`
+
+> The unit test should be placed in `test/cctest` and be named with the prefix
 `test` followed by the name of unit being tested. For example, the code below
 would be placed in `test/cctest/test_env.cc`:
 
@@ -413,24 +426,37 @@ static void at_exit_callback(void* arg) {
 }
 ```
 
-Next add the test to the `sources` in the `cctest` target in node.gyp:
+下一步需要将测试代码的路径添加到 `node.gyp` 文件中的 `sources` 配置项里：
+
+> Next add the test to the `sources` in the `cctest` target in node.gyp:
+
 ```console
 'sources': [
   'test/cctest/test_env.cc',
   ...
 ],
 ```
-The test can be executed by running the `cctest` target:
+
+接下来这个测试可以通过 `make cctest` 运行：
+
+> The test can be executed by running the `cctest` target:
+
 ```console
 $ make cctest
 ```
 
-### Node test fixture
-There is a [test fixture][] named `node_test_fixture.h` which can be included by
+### Node 测试环境
+> ### Node test fixture
+
+`node_test_fixture.h` 可以被用于测试环境初始化设置，当测试结束时，可以销毁这些环境设置。
+
+> There is a [test fixture][] named `node_test_fixture.h` which can be included by
 unit tests. The fixture takes care of setting up the Node.js environment
 and tearing it down after the tests have finished.
 
-It also contains a helper to create arguments to be passed into Node.js. It
+并且这个工具库包含一个辅助方法，用来创建需要传递给 Node.js 的参数。
+
+> It also contains a helper to create arguments to be passed into Node.js. It
 will depend on what is being tested if this is required or not.
 
 [ASCII]: http://man7.org/linux/man-pages/man7/ascii.7.html
@@ -440,3 +466,4 @@ will depend on what is being tested if this is required or not.
 [all maintained branches]: https://github.com/nodejs/lts
 [node.green]: http://node.green/
 [test fixture]: https://github.com/google/googletest/blob/master/googletest/docs/Primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests
+[主干分支]: https://github.com/nodejs/lts
