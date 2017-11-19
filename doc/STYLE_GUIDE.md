@@ -1,4 +1,5 @@
-# Style Guide
+# 风格指南
+> # Style Guide
 
 * Documentation is written in markdown files with names formatted as
   `lowercase-with-dashes.md`.
