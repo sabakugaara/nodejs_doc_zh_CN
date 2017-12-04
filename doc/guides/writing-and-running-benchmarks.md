@@ -1,6 +1,8 @@
-# How to Write and Run Benchmarks in Node.js Core
+# 如何编写和执行基准测试
+> # How to Write and Run Benchmarks in Node.js Core
 
-## Table of Contents
+## 目录
+> ## Table of Contents
 
 * [Prerequisites](#prerequisites)
   * [HTTP Benchmark Requirements](#http-benchmark-requirements)
@@ -15,9 +17,12 @@
   * [Basics of a benchmark](#basics-of-a-benchmark)
   * [Creating an HTTP benchmark](#creating-an-http-benchmark)
 
-## Prerequisites
+## 准备
+> ## Prerequisites
 
-Basic Unix tools are required for some benchmarks.
+首先需要一些 Unix 基本工具，windows 下需要安装[Git for Windows](git-for-windows)，它包含 git bash 和一些必须工具，路径需要添加到 Windows 的全局 `PATH` 中。
+
+> Basic Unix tools are required for some benchmarks.
 [Git for Windows][git-for-windows] includes Git Bash and the necessary tools,
 which need to be included in the global Windows `PATH`.
 
